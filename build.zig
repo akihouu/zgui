@@ -329,7 +329,7 @@ pub fn build(b: *std.Build) void {
                     "libs/imgui/backends/imgui_impl_win32.cpp",
                     "libs/imgui/backends/imgui_impl_opengl3.cpp",
                 },
-                .flags = &(cflags.* ++ .{"-DIMGUI_IMPL_OPENGL_LOADER_CUSTOM"}),
+                .flags = &(cflags.* ++ .{"-DIMGUI_IMPL_OPENGL_LOADER_IMGL3W"}),
             });
             imgui.root_module.linkSystemLibrary("dwmapi", .{});
             switch (target.result.abi) {
