@@ -83,7 +83,7 @@ pub fn getCurrentContext() ?Context {
 }
 pub fn deinit() void {
     if (zguiGetCurrentContext() != null) {
-        temp_buffer.?.deinit();
+        temp_buffer.?.deinit(mem_allocator.?);
         zguiDestroyContext(null);
 
         // Must be after destroy imgui context.
@@ -115,13 +115,13 @@ pub fn deinit() void {
 pub fn initNoContext(allocator: std.mem.Allocator) void {
     mem_allocator = allocator;
     if (temp_buffer == null) {
-        temp_buffer = std.ArrayList(u8){};
-        temp_buffer.?.resize(mem_allocator.?, 3 * 1024 + 1) catch unreachable;
+        temp_buffer = std.ArrayList(u8).init(mem_allocator.?);
+        temp_buffer.?.resize(3 * 1024 + 1) catch unreachable;
     }
 }
 pub fn deinitNoContext() void {
     if (temp_buffer) |*buf| {
-        buf.deinit();
+        buf.deinit(mem_allocator.?);
     }
 }
 extern fn zguiCreateContext(shared_font_atlas: ?*const anyopaque) Context;
@@ -141,7 +141,7 @@ fn zguiMemAlloc(size: usize, _: ?*anyopaque) callconv(.c) ?*anyopaque {
     const mem = mem_allocator.?.allocWithOptions(
         u8,
         size,
-        mem_alignment.toByteUnits(),
+        mem_alignment,
         null,
     ) catch @panic("zgui: out of memory");
 
