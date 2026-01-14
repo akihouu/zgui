@@ -7,6 +7,8 @@ pub const Backend = enum {
     glfw_vulkan,
     glfw_dx12,
     win32_dx12,
+    win32_opengl3,
+    win32,
     glfw,
     sdl2_opengl3,
     osx_metal,
@@ -314,6 +316,35 @@ pub fn build(b: *std.Build) void {
                 .flags = cflags,
             });
             imgui.root_module.linkSystemLibrary("d3dcompiler_47", .{});
+            imgui.root_module.linkSystemLibrary("dwmapi", .{});
+            switch (target.result.abi) {
+                .msvc => imgui.root_module.linkSystemLibrary("Gdi32", .{}),
+                .gnu => imgui.root_module.linkSystemLibrary("gdi32", .{}),
+                else => {},
+            }
+        },
+        .win32_opengl3 => {
+            imgui.root_module.addCSourceFiles(.{
+                .files = &.{
+                    "libs/imgui/backends/imgui_impl_win32.cpp",
+                    "libs/imgui/backends/imgui_impl_opengl3.cpp",
+                },
+                .flags = &(cflags.* ++ .{"-DIMGUI_IMPL_OPENGL_LOADER_CUSTOM"}),
+            });
+            imgui.root_module.linkSystemLibrary("dwmapi", .{});
+            switch (target.result.abi) {
+                .msvc => imgui.root_module.linkSystemLibrary("Gdi32", .{}),
+                .gnu => imgui.root_module.linkSystemLibrary("gdi32", .{}),
+                else => {},
+            }
+        },
+        .win32 => {
+            imgui.root_module.addCSourceFiles(.{
+                .files = &.{
+                    "libs/imgui/backends/imgui_impl_win32.cpp",
+                },
+                .flags = cflags,
+            });
             imgui.root_module.linkSystemLibrary("dwmapi", .{});
             switch (target.result.abi) {
                 .msvc => imgui.root_module.linkSystemLibrary("Gdi32", .{}),

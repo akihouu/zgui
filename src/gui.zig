@@ -17,6 +17,8 @@ pub const backend = switch (@import("zgui_options").backend) {
     .glfw_vulkan => @import("backend_glfw_vulkan.zig"),
     .glfw => @import("backend_glfw.zig"),
     .win32_dx12 => @import("backend_win32_dx12.zig"),
+    .win32_opengl3 => @import("backend_win32_opengl.zig"),
+    .win32 => @import("backend_win32.zig"),
     .osx_metal => @import("backend_osx_metal.zig"),
     .sdl2 => @import("backend_sdl2.zig"),
     .sdl2_opengl3 => @import("backend_sdl2_opengl.zig"),
@@ -52,8 +54,7 @@ pub fn init(allocator: std.mem.Allocator) void {
 
         _ = zguiCreateContext(null);
 
-        temp_buffer = std.ArrayList(u8){};
-        temp_buffer.?.resize(allocator, 3 * 1024 + 1) catch unreachable;
+        temp_buffer = std.ArrayList(u8).initCapacity(allocator, 3 * 1024 + 1) catch unreachable;
 
         if (te_enabled) {
             te.init();
@@ -71,8 +72,7 @@ pub fn initWithExistingContext(allocator: std.mem.Allocator, ctx: Context) void 
 
     zguiSetCurrentContext(ctx);
 
-    temp_buffer = std.ArrayList(u8){};
-    temp_buffer.?.resize(mem_allocator.?, 3 * 1024 + 1) catch unreachable;
+    temp_buffer = std.ArrayList(u8).initCapacity(mem_allocator.?, 3 * 1024 + 1) catch unreachable;
 
     if (te_enabled) {
         te.init();
@@ -83,7 +83,7 @@ pub fn getCurrentContext() ?Context {
 }
 pub fn deinit() void {
     if (zguiGetCurrentContext() != null) {
-        temp_buffer.?.deinit(mem_allocator.?);
+        temp_buffer.?.deinit();
         zguiDestroyContext(null);
 
         // Must be after destroy imgui context.
@@ -121,7 +121,7 @@ pub fn initNoContext(allocator: std.mem.Allocator) void {
 }
 pub fn deinitNoContext() void {
     if (temp_buffer) |*buf| {
-        buf.deinit(mem_allocator.?);
+        buf.deinit();
     }
 }
 extern fn zguiCreateContext(shared_font_atlas: ?*const anyopaque) Context;
@@ -138,10 +138,11 @@ fn zguiMemAlloc(size: usize, _: ?*anyopaque) callconv(.c) ?*anyopaque {
     mem_mutex.lock();
     defer mem_mutex.unlock();
 
-    const mem = mem_allocator.?.alignedAlloc(
+    const mem = mem_allocator.?.allocWithOptions(
         u8,
-        mem_alignment,
         size,
+        mem_alignment.toByteUnits(),
+        null,
     ) catch @panic("zgui: out of memory");
 
     mem_allocations.?.put(@intFromPtr(mem.ptr), size) catch @panic("zgui: out of memory");
